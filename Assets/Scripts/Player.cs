@@ -1,13 +1,27 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class Player : MonoBehaviour
 {
-    private float _jumpEndTime;
-    [SerializeField] private float _jumpVelocity = 5;
-    [SerializeField] private float _jumpDuration = 0.5f;
+    float _jumpEndTime;
+    [SerializeField] float _horizontalVelocity = 3;
+    [SerializeField] float _jumpVelocity = 5;
+    [SerializeField] float _jumpDuration = 0.5f;
+    [SerializeField] Sprite _jumpsprite;
     public bool IsGrounded;
+    SpriteRenderer _spriteRenderer;
+    Sprite _defaultSprite;
+    float _horizontal;
+    Animator _animator;
+    
+    private void Awake()
+    {
+        _spriteRenderer = GetComponent<SpriteRenderer>();
+        _defaultSprite = _spriteRenderer.sprite;
+        _animator = GetComponent<Animator>();
+    }
 
     void OnDrawGizmos()
     {
@@ -17,34 +31,40 @@ public class Player : MonoBehaviour
         Gizmos.DrawLine(origin, origin + Vector2.down * 0.1f);
     }
 
-    // Update is called once per frame
     void Update()
     {
-        SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
-        Vector2 origin = new Vector2(transform.position.x, transform.position.y - spriteRenderer.bounds.extents.y);
+        Vector2 origin = new Vector2(transform.position.x, transform.position.y - _spriteRenderer.bounds.extents.y);
         var hit = Physics2D.Raycast(origin, Vector2.down, 0.1f);
-        if (hit.collider)
-        {
-            IsGrounded = true;
-        }
-        else
-        {
-            IsGrounded = false;
-        }
 
-        var horizontal = Input.GetAxis("Horizontal");
+        if (hit.collider)
+            IsGrounded = true;
+        else
+            IsGrounded = false;
+
+        _horizontal = Input.GetAxis("Horizontal");
         Rigidbody2D rb = GetComponent<Rigidbody2D>();
         var vertical = rb.linearVelocity.y;
 
         if (Input.GetButtonDown("Jump") && IsGrounded)
-        {
             _jumpEndTime = Time.time + _jumpDuration;
-        }
 
         if (Input.GetButton("Jump") && _jumpEndTime > Time.time)
-        {
             vertical = _jumpVelocity;
-        }
-        rb.linearVelocity = new Vector2(horizontal, vertical);
+
+        _horizontal *= _horizontalVelocity;
+        rb.linearVelocity = new Vector2(_horizontal, vertical);
+
+        UpdateSprite();
+    }
+
+    private void UpdateSprite()
+    {
+        _animator.SetBool("IsGrounded", IsGrounded);
+        _animator.SetFloat("HorizontalSpeed", Math.Abs(_horizontal));
+
+        if (_horizontal > 0)
+            _spriteRenderer.flipX = false;
+        else if (_horizontal < 0)
+            _spriteRenderer.flipX = true;
     }
 }
